@@ -26,11 +26,13 @@ class PWM :
   __ALL_LED_OFF_H      = 0xFD
 
   # Bits
-  __RESTART            = 0x80
-  __SLEEP              = 0x10
-  __ALLCALL            = 0x01
-  __INVRT              = 0x10
-  __OUTDRV             = 0x04
+  __RESTART            = 1 << 7
+  __AI                 = 1 << 5
+  __SLEEP              = 1 << 4
+  __ALLCALL            = 1 << 0
+
+  __INVRT              = 1 << 4
+  __OUTDRV             = 1 << 2
 
   general_call_i2c = Adafruit_I2C(0x00)
 
@@ -45,10 +47,10 @@ class PWM :
     self.address = address
     self.debug = debug
     if (self.debug):
-      print "Reseting PCA9685 MODE1 (without SLEEP) and MODE2"
+      print "Reseting PCA9685 MODE1 (without SLEEP, but with AI) and MODE2"
     self.setAllPWM(0, 0)
     self.i2c.write8(self.__MODE2, self.__OUTDRV)
-    self.i2c.write8(self.__MODE1, self.__ALLCALL)
+    self.i2c.write8(self.__MODE1, self.__ALLCALL | self.__AI)
     time.sleep(0.005)                                       # wait for oscillator
     
     mode1 = self.i2c.readU8(self.__MODE1)
@@ -79,14 +81,8 @@ class PWM :
 
   def setPWM(self, channel, on, off):
     "Sets a single PWM channel"
-    self.i2c.write8(self.__LED0_ON_L+4*channel, on & 0xFF)
-    self.i2c.write8(self.__LED0_ON_H+4*channel, on >> 8)
-    self.i2c.write8(self.__LED0_OFF_L+4*channel, off & 0xFF)
-    self.i2c.write8(self.__LED0_OFF_H+4*channel, off >> 8)
+    self.i2c.writeList(self.__LED0_ON_L+4*channel, [on & 0xFF, on >> 8, off & 0xFF, off >> 8])
 
   def setAllPWM(self, on, off):
     "Sets a all PWM channels"
-    self.i2c.write8(self.__ALL_LED_ON_L, on & 0xFF)
-    self.i2c.write8(self.__ALL_LED_ON_H, on >> 8)
-    self.i2c.write8(self.__ALL_LED_OFF_L, off & 0xFF)
-    self.i2c.write8(self.__ALL_LED_OFF_H, off >> 8)
+    self.i2c.writeList(self.__ALL_LED_ON_L, [on & 0xFF, on >> 8, off & 0xFF, off >> 8])
